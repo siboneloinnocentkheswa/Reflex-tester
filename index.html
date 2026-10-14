@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>FC Mobile Reflex Benchmark Pro</title>
+  <style>
+    :root {
+      --bg: #0b0e14;
+      --card-bg: #151922;
+      --accent-green: #00ff88;
+      --accent-cyan: #00bfff;
+      --accent-red: #ff4757;
+      --gold: #ffd700;
+      --text: #f0f2f5;
+      --text-dim: #8b949e;
+      --border: #232a3b;
+      --whatsapp-green: #25D366;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: clamp(8px, 2vw, 20px);
+      touch-action: manipulation;
+    }
+
+    .app-container {
+      width: 100%;
+      max-width: 620px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    header {
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* Fixed Layout: Clean row for Title and Sound Toggle */
+    .title-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      position: relative;
+    }
+
+    header h1 {
+      font-size: clamp(1.3rem, 4.2vw, 2rem);
+      font-weight: 800;
+      background: linear-gradient(90deg, var(--accent-green), var(--accent-cyan));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      line-height: 1.2;
+    }
+
+    /* Cleaned up Sound Button positioning */
+    .sound-toggle {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 5px 10px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      white-space: nowrap;
+    }
+
+    header p {
+      font-size: clamp(0.75rem, 2.2vw, 0.88rem);
+      color: var(--text-dim);
+      margin-top: 4px;
+    }
+
+    /* Mode Selection Pills */
+    .mode-selector {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .mode-btn {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .mode-btn.active {
+      background: rgba(0, 255, 136, 0.12);
+      border-color: var(--accent-green);
+      color: var(--accent-green);
+    }
+
+    /* Scoreboard Bar */
+    .scoreboard {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      width: 100%;
+    }
+
+    .stat-box {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: clamp(6px, 1.5vw, 10px);
+      text-align: center;
+    }
+
+    .stat-label {
+      font-size: clamp(0.58rem, 1.6vw, 0.68rem);
+      color: var(--text-dim);
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+
+    .stat-val {
+      font-size: clamp(0.85rem, 2.5vw, 1.1rem);
+      font-weight: 700;
+      color: var(--accent-green);
+      margin-top: 2px;
+    }
+
+    .stat-val.gold { color: var(--gold); }
+    .stat-val.cyan { color: var(--accent-cyan); }
+    .stat-val.red { color: var(--accent-red); }
+
+    /* Arena */
+    .arena {
+      width: 100%;
+      height: clamp(280px, 42vh, 400px);
+      background: #0d1a12;
+      border: 2px solid var(--border);
+      border-radius: 14px;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+      transition: background 0.15s, border-color 0.15s;
+      touch-action: none;
+      -webkit-touch-callout: none;
+    }
+
+    .arena::before {
+      content: '';
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background: 
+        linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
+      background-size: 35px 35px;
+      pointer-events: none;
+    }
+
+    .pitch-center-circle {
+      position: absolute;
+      width: clamp(80px, 20vw, 110px);
+      height: clamp(80px, 20vw, 110px);
+      border: 2px solid rgba(255,255,255,0.08);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    /* Interactive States */
+    .arena.waiting { background: #2a1b08; border-color: #ff9f43; }
+    .arena.ready { background: #0a331c; border-color: var(--accent-green); }
+    .arena.error { background: #3a0d13; border-color: var(--accent-red); }
+
+    .status-text {
+      font-size: clamp(1rem, 3.2vw, 1.3rem);
+      font-weight: 700;
+      text-align: center;
+      z-index: 2;
+      pointer-events: none;
+      padding: 0 16px;
+    }
+
+    /* Precision Glowing Target */
+    .target {
+      position: absolute;
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(0, 255, 136, 0.4) 0%, rgba(0, 191, 255, 0.1) 100%);
+      border: 2px solid var(--accent-green);
+      box-shadow: 0 0 20px rgba(0, 255, 136, 0.8), inset 0 0 12px rgba(0, 255, 136, 0.5);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      transform: translate(-50%, -50%);
+      z-index: 10;
+      cursor: pointer;
+      pointer-events: auto;
+      animation: targetPulse 1s infinite alternate ease-in-out;
+    }
+
+    @keyframes targetPulse {
+      from { transform: translate(-50%, -50%) scale(0.96); box-shadow: 0 0 14px rgba(0, 255, 136, 0.6); }
+      to { transform: translate(-50%, -50%) scale(1.04); box-shadow: 0 0 24px rgba(0, 255, 136, 1); }
+    }
+
+    .target-ring {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 2px solid var(--accent-cyan);
+      pointer-events: none;
+    }
+
+    .target-center {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--accent-green);
+      box-shadow: 0 0 8px var(--accent-green);
+      pointer-events: none;
+    }
+
+    /* Miss Indicator */
+    .miss-indicator {
+      position: absolute;
+      width: 30px;
+      height: 30px;
+      border: 2px solid var(--accent-red);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      animation: missFade 0.4s forwards ease-out;
+      z-index: 15;
+    }
+
+    @keyframes missFade {
+      0% { opacity: 1; transform: translate(-50%, -50%) scale(0.5); }
+      100% { opacity: 0; transform: translate(-50%, -50%) scale(1.6); }
+    }
+
+    /* Results Dashboard */
+    .results-card {
+      width: 100%;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      display: none;
+    }
+
+    .results-header {
+      text-align: center;
+      margin-bottom: 12px;
+    }
+
+    .score-badge-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 12px;
+      margin-top: 8px;
+    }
+
+    .reflex-score-card {
+      background: rgba(0, 255, 136, 0.08);
+      border: 1px solid var(--accent-green);
+      border-radius: 10px;
+      padding: 6px 14px;
+      text-align: center;
+    }
+
+    .reflex-score-num {
+      font-size: 1.4rem;
+      font-weight: 900;
+      color: var(--accent-green);
+      line-height: 1;
+    }
+
+    .reflex-score-label {
+      font-size: 0.62rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      font-weight: 700;
+      margin-top: 2px;
+    }
+
+    .badge-rank {
+      padding: 8px 16px;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      background: linear-gradient(90deg, #ffd700, #ffa500);
+      color: #000;
+    }
+
+    .pb-celebration {
+      margin-top: 10px;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: 800;
+      text-align: center;
+      background: linear-gradient(90deg, rgba(0,255,136,0.15), rgba(0,191,255,0.15));
+      border: 1px solid var(--accent-cyan);
+      color: #ffffff;
+      animation: pbGlow 1.2s infinite alternate;
+    }
+
+    @keyframes pbGlow {
+      from { box-shadow: 0 0 6px rgba(0, 255, 136, 0.2); }
+      to { box-shadow: 0 0 16px rgba(0, 191, 255, 0.5); }
+    }
+
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      margin: 12px 0;
+    }
+
+    .distribution-section {
+      margin-top: 12px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+    }
+
+    .distribution-title {
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .dist-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.75rem;
+      margin-bottom: 6px;
+    }
+
+    .dist-label {
+      width: 80px;
+      color: var(--text-dim);
+      font-weight: 600;
+      font-family: monospace;
+    }
+
+    .dist-bar-wrapper {
+      flex: 1;
+      background: rgba(255,255,255,0.05);
+      height: 12px;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .dist-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent-green), var(--accent-cyan));
+      border-radius: 4px;
+      transition: width 0.3s ease;
+    }
+
+    .dist-count {
+      width: 20px;
+      text-align: right;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .action-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .btn-action {
+      width: 100%;
+      background: linear-gradient(90deg, var(--accent-green), var(--accent-cyan));
+      color: #000;
+      border: none;
+      padding: 12px;
+      border-radius: 8px;
+      font-weight: 800;
+      font-size: 1rem;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .btn-share {
+      width: 100%;
+      background: var(--whatsapp-green);
+      color: #ffffff;
+      border: none;
+      padding: 12px;
+      border-radius: 8px;
+      font-weight: 800;
+      font-size: 0.95rem;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: background-color 0.2s ease;
+    }
+
+    .btn-share:hover {
+      background: #1da851;
+    }
+
+    .btn-action:active, .btn-share:active { transform: scale(0.98); }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+    <header>
+      <div class="title-row">
+        <h1>FC Reflex Benchmark</h1>
+        <button class="sound-toggle" id="soundToggle" onclick="toggleAudio()">🔊 Sound ON</button>
+      </div>
+      <p>Precision Reaction Benchmark Utility</p>
+      
+      <!-- Mode Selection -->
+      <div class="mode-selector">
+        <button class="mode-btn" data-rounds="5" onclick="setMode(5, this)">⚡ Quick (5)</button>
+        <button class="mode-btn active" data-rounds="10" onclick="setMode(10, this)">🎯 Standard (10)</button>
+        <button class="mode-btn" data-rounds="20" onclick="setMode(20, this)">🔥 Pro (20)</button>
+      </div>
+    </header>
+
+    <!-- Scoreboard -->
+    <div class="scoreboard">
+      <div class="stat-box">
+        <div class="stat-label">Round</div>
+        <div class="stat-val" id="dispRound">0/10</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Misses</div>
+        <div class="stat-val red" id="dispMisses">0</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Today Best</div>
+        <div class="stat-val cyan" id="dispTodayBest">--</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">All-Time PB</div>
+        <div class="stat-val gold" id="dispBest">--</div>
+      </div>
+    </div>
+
+    <!-- Arena -->
+    <div class="arena" id="arena" tabindex="0">
+      <div class="pitch-center-circle"></div>
+      <div class="status-text" id="statusText">TAP / PRESS SPACE TO START</div>
+      <div class="target" id="target">
+        <div class="target-ring"></div>
+        <div class="target-center"></div>
+      </div>
+    </div>
+
+    <!-- Results Dashboard -->
+    <div class="results-card" id="resultsCard">
+      <div class="results-header">
+        <div style="font-size: 0.72rem; color: var(--text-dim); letter-spacing: 1px;">BENCHMARK RATING</div>
+        
+        <div class="score-badge-container">
+          <div class="reflex-score-card">
+            <div class="reflex-score-num" id="resReflexScore">--</div>
+            <div class="reflex-score-label">FC Reflex Score</div>
+          </div>
+          <div class="badge-rank" id="rankBadge">EXCELLENT</div>
+        </div>
+
+        <div id="pbCelebrationBanner"></div>
+      </div>
+
+      <div class="metrics-grid">
+        <div class="stat-box">
+          <div class="stat-label">Average Reaction</div>
+          <div class="stat-val" id="resAvg">0 ms</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Consistency</div>
+          <div class="stat-val" id="resConsistency">±0 ms</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Fastest Tap</div>
+          <div class="stat-val" id="resFastest" style="color: var(--accent-cyan);">0 ms</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Total Misses</div>
+          <div class="stat-val" id="resMisses" style="color: var(--accent-red);">0</div>
+        </div>
+      </div>
+
+      <!-- Reaction Time Distribution Histogram -->
+      <div class="distribution-section">
+        <div class="distribution-title">Reaction Distribution</div>
+        <div id="distributionContainer"></div>
+      </div>
+
+      <div class="action-buttons">
+        <button class="btn-share" onclick="shareScore()">📲 Share Score on WhatsApp</button>
+        <button class="btn-action" onclick="resetGame()">TEST AGAIN</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let totalRounds = 10;
+    let currentRound = 0;
+    let roundTimes = [];
+    let missCount = 0;
+    let state = 'IDLE'; // IDLE, WAITING, READY, FINISHED
+    let timerTimeout = null;
+    let startTime = 0;
+    let audioMuted = false;
+    let lastReflexScore = 0;
+    let lastAvgTime = 0;
+
+    const FAIRNESS_OVERHEAD_CORRECTION = 35;
+    const PHYSICAL_MIN_REACTION = 100;
+
+    const arena = document.getElementById('arena');
+    const statusText = document.getElementById('statusText');
+    const target = document.getElementById('target');
+    const dispRound = document.getElementById('dispRound');
+    const dispMisses = document.getElementById('dispMisses');
+    const dispTodayBest = document.getElementById('dispTodayBest');
+    const dispBest = document.getElementById('dispBest');
+    const resultsCard = document.getElementById('resultsCard');
+    const soundToggle = document.getElementById('soundToggle');
+
+    let audioCtx = null;
+
+    function initAudio() {
+      if (!audioCtx) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (AudioContext) audioCtx = new AudioContext();
+      }
+      if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    function toggleAudio() {
+      audioMuted = !audioMuted;
+      soundToggle.innerText = audioMuted ? "🔇 Sound OFF" : "🔊 Sound ON";
+    }
+
+    function playSound(type) {
+      if (audioMuted) return;
+      initAudio();
+      if (!audioCtx) return;
+
+      const now = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      if (type === 'spawn') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(587.33, now);
+        osc.frequency.exponentialRampToValueAtTime(880, now + 0.08);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+        osc.start(now);
+        osc.stop(now + 0.1);
+      } else if (type === 'hit') {
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(523.25, now);
+        osc.frequency.exponentialRampToValueAtTime(1046.50, now + 0.09);
+        gain.gain.setValueAtTime(0.25, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+        osc.start(now);
+        osc.stop(now + 0.1);
+      } else if (type === 'miss') {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(160, now);
+        osc.frequency.linearRampToValueAtTime(90, now + 0.15);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+        osc.start(now);
+        osc.stop(now + 0.15);
+      } else if (type === 'early') {
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(220, now);
+        osc.frequency.setValueAtTime(110, now + 0.1);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+        osc.start(now);
+        osc.stop(now + 0.25);
+      }
+    }
+
+    function getStorage(key) {
+      try { return localStorage.getItem(key) || null; } catch (e) { return null; }
+    }
+    function setStorage(key, val) {
+      try { localStorage.setItem(key, val); } catch (e) {}
+    }
+
+    let personalBest = getStorage('fc_reflex_pb');
+    const todayKey = `fc_reflex_tb_${new Date().toISOString().slice(0, 10)}`;
+    let todayBest = getStorage(todayKey);
+
+    if (personalBest) dispBest.innerText = `${personalBest}ms`;
+    if (todayBest) dispTodayBest.innerText = `${todayBest}ms`;
+
+    function setMode(rounds, btn) {
+      if (state !== 'IDLE' && state !== 'FINISHED') return;
+      totalRounds = rounds;
+      document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      dispRound.innerText = `0/${totalRounds}`;
+    }
+
+    target.addEventListener('pointerdown', (e) => {
+      e.stopPropagation();
+      if (state === 'READY') {
+        registerSuccessHit();
+      }
+    });
+
+    arena.addEventListener('pointerdown', (e) => {
+      initAudio();
+      
+      if (state === 'IDLE') {
+        startChallenge();
+      } else if (state === 'WAITING') {
+        clearTimeout(timerTimeout);
+        state = 'IDLE';
+        arena.className = 'arena error';
+        statusText.innerText = '❌ TOO EARLY! TAP TO RETRY';
+        playSound('early');
+      } else if (state === 'READY') {
+        registerMiss(e);
+      }
+    });
+
+    window.addEventListener('keydown', (e) => {
+      if ((e.code === 'Space' || e.code === 'Enter') && state !== 'FINISHED') {
+        initAudio();
+        if (state === 'IDLE') {
+          startChallenge();
+        } else if (state === 'WAITING') {
+          clearTimeout(timerTimeout);
+          state = 'IDLE';
+          arena.className = 'arena error';
+          statusText.innerText = '❌ TOO EARLY! PRESS TO RETRY';
+          playSound('early');
+        } else if (state === 'READY') {
+          registerSuccessHit();
+        }
+      }
+    });
+
+    function registerMiss(e) {
+      missCount++;
+      dispMisses.innerText = missCount;
+      playSound('miss');
+
+      if (e && e.clientX) {
+        const rect = arena.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        
+        const missDot = document.createElement('div');
+        missDot.className = 'miss-indicator';
+        missDot.style.left = `${x}px`;
+        missDot.style.top = `${y}px`;
+        arena.appendChild(missDot);
+        setTimeout(() => missDot.remove(), 400);
+      }
+    }
+
+    function registerSuccessHit() {
+      let rawReaction = Math.round(performance.now() - startTime);
+
+      if (rawReaction < PHYSICAL_MIN_REACTION) {
+        clearTimeout(timerTimeout);
+        state = 'IDLE';
+        arena.className = 'arena error';
+        statusText.innerText = '❌ IMPOSSIBLE TIMING! TAP TO RETRY';
+        playSound('early');
+        return;
+      }
+
+      const fairReactionTime = Math.max(105, rawReaction - FAIRNESS_OVERHEAD_CORRECTION);
+      roundTimes.push(fairReactionTime);
+      target.style.display = 'none';
+      playSound('hit');
+
+      currentRound++;
+      dispRound.innerText = `${currentRound}/${totalRounds}`;
+
+      if (currentRound < totalRounds) {
+        nextRound();
+      } else {
+        finishGame();
+      }
+    }
+
+    function startChallenge() {
+      currentRound = 0;
+      missCount = 0;
+      roundTimes = [];
+      resultsCard.style.display = 'none';
+      dispRound.innerText = `0/${totalRounds}`;
+      dispMisses.innerText = '0';
+      nextRound();
+    }
+
+    function nextRound() {
+      state = 'WAITING';
+      arena.className = 'arena waiting';
+      statusText.innerText = 'WAIT FOR SIGNAL...';
+      target.style.display = 'none';
+
+      const delay = Math.floor(Math.random() * 2000) + 1400;
+
+      timerTimeout = setTimeout(() => {
+        state = 'READY';
+        arena.className = 'arena ready';
+        statusText.innerText = '';
+
+        const arenaRect = arena.getBoundingClientRect();
+        const targetRadius = 32;
+        const borderPadding = 12;
+
+        const minX = targetRadius + borderPadding;
+        const maxX = arenaRect.width - targetRadius - borderPadding;
+        const minY = targetRadius + borderPadding;
+        const maxY = arenaRect.height - targetRadius - borderPadding;
+
+        const randomX = Math.floor(Math.random() * (maxX - minX + 1)) + minX;
+        const randomY = Math.floor(Math.random() * (maxY - minY + 1)) + minY;
+
+        target.style.left = `${randomX}px`;
+        target.style.top = `${randomY}px`;
+        target.style.display = 'flex';
+
+        playSound('spawn');
+
+        startTime = performance.now();
+      }, delay);
+    }
+
+    function calculateReflexScore(avgMs, misses) {
+      if (avgMs <= 140 && misses === 0) return 99;
+      let score = Math.round(100 - (avgMs - 140) * 0.22 - (misses * 3));
+      return Math.max(10, Math.min(99, score));
+    }
+
+    function finishGame() {
+      state = 'FINISHED';
+      arena.className = 'arena';
+      statusText.innerText = 'BENCHMARK COMPLETE!';
+
+      const sum = roundTimes.reduce((a, b) => a + b, 0);
+      const avg = Math.round(sum / totalRounds);
+      const fastest = Math.min(...roundTimes);
+      const reflexScore = calculateReflexScore(avg, missCount);
+
+      lastReflexScore = reflexScore;
+      lastAvgTime = avg;
+
+      const variance = roundTimes.reduce((a, b) => a + Math.pow(b - avg, 2), 0) / totalRounds;
+      const stdDev = Math.round(Math.sqrt(variance));
+
+      const bannerContainer = document.getElementById('pbCelebrationBanner');
+
+      if (!personalBest || avg < personalBest) {
+        personalBest = avg;
+        setStorage('fc_reflex_pb', personalBest);
+        dispBest.innerText = `${personalBest}ms`;
+        bannerContainer.innerHTML = `<div class="pb-celebration">🔥 NEW PERSONAL BEST! ${avg}ms</div>`;
+      } else {
+        const delta = avg - personalBest;
+        const deltaMsg = delta === 0 
+          ? '🎯 MATCHED YOUR PERSONAL BEST!' 
+          : `You were ${delta} ms from your Personal Best`;
+        bannerContainer.innerHTML = `<div style="margin-top: 8px; font-size: 0.82rem; color: var(--accent-cyan); font-weight: 700; text-align: center;">${deltaMsg}</div>`;
+      }
+
+      if (!todayBest || avg < todayBest) {
+        todayBest = avg;
+        setStorage(todayKey, todayBest);
+        dispTodayBest.innerText = `${todayBest}ms`;
+      }
+
+      let rank = '';
+      let rankColor = '';
+
+      if (avg < 170) {
+        rank = 'ELITE ⚡';
+        rankColor = 'linear-gradient(90deg, #00ff88, #00bfff)';
+      } else if (avg <= 210) {
+        rank = 'EXCELLENT 🏆';
+        rankColor = 'linear-gradient(90deg, #00bfff, #70a1ff)';
+      } else if (avg <= 250) {
+        rank = 'VERY GOOD 🥇';
+        rankColor = 'linear-gradient(90deg, #ffd700, #ff8c00)';
+      } else if (avg <= 300) {
+        rank = 'GOOD ⚽';
+        rankColor = 'linear-gradient(90deg, #ff9f43, #feca57)';
+      } else if (avg <= 350) {
+        rank = 'AVERAGE 👟';
+        rankColor = 'linear-gradient(90deg, #cd7f32, #ffa500)';
+      } else {
+        rank = 'NEEDS WORK ⏱️';
+        rankColor = 'linear-gradient(90deg, #8b949e, #d0d7de)';
+      }
+
+      document.getElementById('resReflexScore').innerText = reflexScore;
+      document.getElementById('rankBadge').innerText = rank;
+      document.getElementById('rankBadge').style.background = rankColor;
+      document.getElementById('resAvg').innerText = `${avg} ms`;
+      document.getElementById('resConsistency').innerText = `±${stdDev} ms`;
+      document.getElementById('resFastest').innerText = `${fastest} ms`;
+      document.getElementById('resMisses').innerText = missCount;
+
+      renderDistribution();
+
+      resultsCard.style.display = 'block';
+    }
+
+    function renderDistribution() {
+      const buckets = [
+        { label: '< 175ms', min: 0, max: 174, count: 0 },
+        { label: '175-199ms', min: 175, max: 199, count: 0 },
+        { label: '200-224ms', min: 200, max: 224, count: 0 },
+        { label: '225-249ms', min: 225, max: 249, count: 0 },
+        { label: '250ms+', min: 250, max: 9999, count: 0 },
+      ];
+
+      roundTimes.forEach(time => {
+        for (let b of buckets) {
+          if (time >= b.min && time <= b.max) {
+            b.count++;
+            break;
+          }
+        }
+      });
+
+      let distHTML = '';
+      buckets.forEach(b => {
+        const pct = totalRounds > 0 ? (b.count / totalRounds) * 100 : 0;
+        distHTML += `
+          <div class="dist-row">
+            <span class="dist-label">${b.label}</span>
+            <div class="dist-bar-wrapper">
+              <div class="dist-bar-fill" style="width: ${pct}%;"></div>
+            </div>
+            <span class="dist-count">${b.count}</span>
+          </div>
+        `;
+      });
+
+      document.getElementById('distributionContainer').innerHTML = distHTML;
+    }
+
+    function shareScore() {
+      ;
+      const scoreMsg = lastReflexScore ? `Reflex Score: ${lastReflexScore} (${lastAvgTime}ms avg)` : "my reaction score";
+      const shareText = `🎮 I just benchmarked my reflexes on EA FC Mobile Hub! My ${scoreMsg}. Can you beat it? Test here: ${siteUrl}`;
+
+      if (navigator.share) {
+        navigator.share({
+          title: 'FC Mobile Reflex Benchmark',
+          text: shareText
+        }).catch((err) => console.log('Share canceled:', err));
+      } else {
+        const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`;
+        window.open(whatsappUrl, '_blank');
+      }
+    }
+
+    function resetGame() {
+      state = 'IDLE';
+      resultsCard.style.display = 'none';
+      statusText.innerText = 'TAP / PRESS SPACE TO START';
+      dispRound.innerText = `0/${totalRounds}`;
+      dispMisses.innerText = '0';
+    }
+  </script>
+</body>
+</html>
